@@ -10,6 +10,16 @@ Work carried out at **TiHAN, IIT Hyderabad** as the navigation-layer part of a s
   <br>▶️ Full clips (click to open GitHub's player): <a href="media/indoor_spoof_test.mp4"><b>indoor bench test</b></a> · <a href="media/outdoor_drift_test.mp4"><b>outdoor flight test</b></a>
 </p>
 
+<!-- ────────────────────────────────────────────────────────────────────────
+     ▶ INLINE VIDEO — make the clip PLAY inside this page (optional):
+       1. Open this README on github.com and click the ✏️ (Edit) button.
+       2. Delete this whole comment block.
+       3. Drag  media/indoor_spoof_test.mp4  (from your computer) onto the blank
+          line below. GitHub uploads it and inserts a .../user-attachments/assets/…
+          link that auto-embeds and plays here. Repeat for the outdoor clip.
+     ──────────────────────────────────────────────────────────────────────── -->
+
+
 > ⚠️ **Research / authorised-lab use only.** Every experiment here was run in a controlled environment at low transmit power (~13 dBm) to study the vulnerability and build countermeasures. **Broadcasting GPS signals over the air outside a shielded, authorised setup is illegal and dangerous** — it can disrupt aircraft, vehicles and phones over a wide area. Do not transmit without proper authorisation and RF containment.
 
 📘 **Docs:** full method in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) · verification report (rendered): **[open in browser](https://htmlpreview.github.io/?https://github.com/shivani708/gps-spoofing_for_UAV_communication/blob/main/docs/verification_report.html)** (GitHub shows the raw `.html` as code; this link renders it).
