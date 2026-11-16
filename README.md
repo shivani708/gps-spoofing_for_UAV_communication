@@ -5,12 +5,14 @@ A research study of **GPS (GNSS L1 C/A) spoofing against drones** and a first-pa
 Work carried out at **TiHAN, IIT Hyderabad** as the navigation-layer part of a secure-UAV-communication project.
 
 <p align="center">
-  <img src="media/outdoor_drift_preview.gif" alt="Live GPS spoofing: Mission Planner ground track drifts as the drone is held under the spoofed signal" width="760">
-  <br><em>Outdoor trial — the spoofed GPS drifts the drone's reported position while Mission Planner shows the diverging ground track, then FAILSAFE / "Unhealthy GPS".</em>
-  <br>▶️ <a href="media/outdoor_drift_test.mp4"><b>Outdoor drift test (MP4)</b></a> · <a href="media/indoor_spoof_test.mp4"><b>Indoor spoofing test (MP4)</b></a>
+  <img src="media/setup_demo.gif" alt="Bench setup: laptop running run_spoof_full.sh with Mission Planner, the drone, and the USRP B210 SDR all in frame as the spoofed position drifts" width="760">
+  <br><em>The live bench — laptop running <code>run_spoof_full.sh</code> (terminal) with Mission Planner, the drone, and the USRP&nbsp;B210 SDR in frame; the spoofed location drifts on the map.</em>
+  <br>▶️ Full clips (click to open GitHub's player): <a href="media/indoor_spoof_test.mp4"><b>indoor bench test</b></a> · <a href="media/outdoor_drift_test.mp4"><b>outdoor flight test</b></a>
 </p>
 
 > ⚠️ **Research / authorised-lab use only.** Every experiment here was run in a controlled environment at low transmit power (~13 dBm) to study the vulnerability and build countermeasures. **Broadcasting GPS signals over the air outside a shielded, authorised setup is illegal and dangerous** — it can disrupt aircraft, vehicles and phones over a wide area. Do not transmit without proper authorisation and RF containment.
+
+📘 **Docs:** full method in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) · verification report (rendered): **[open in browser](https://htmlpreview.github.io/?https://github.com/shivani708/gps-spoofing_for_UAV_communication/blob/main/docs/verification_report.html)** (GitHub shows the raw `.html` as code; this link renders it).
 
 ## Why this matters
 
@@ -163,7 +165,7 @@ run_spoof_full.sh             MAIN orchestrator: multi-hop drift (double-buffere
 spoof_drift.sh                single-hop drift pipeline (trajectory → IQ → transmit)
 sync_gps.sh                   downloads NASA CDDIS RINEX broadcast ephemeris
 docs/METHODOLOGY.md           full architecture, methodology, maths (Haversine, ECEF, EKF)
-docs/verification_report.html bench verification report (open in a browser)
+docs/verification_report.html bench verification report — GitHub shows it as source; see rendered link below
 docs/figures/                 architecture diagrams + result screenshots
 media/                        recorded indoor/outdoor spoofing trials + preview GIF
 results/trajectory_drift.csv  sample generated drift trajectory
