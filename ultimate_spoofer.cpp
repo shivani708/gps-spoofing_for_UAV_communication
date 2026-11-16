@@ -77,8 +77,7 @@ static inline void dbg_ndjson_append(
     const char* message,
     const std::string& data_json_object)
 {
-    static constexpr const char* kLogPath =
-        "/home/dc-lab/Downloads/spoof/working/debug-758b4f.log";
+    static constexpr const char* kLogPath = "ultimate_spoofer_debug.log";
     const auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now()).time_since_epoch().count();
 

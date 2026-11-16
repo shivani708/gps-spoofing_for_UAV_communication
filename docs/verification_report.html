@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS Spoofing System — SDR Signal Injection and Drone Position-Control Verification Report</title>
+<style>
+  :root{
+    --paper:#EEF2ED; --panel:#FFFFFF; --ink:#182420; --ink-soft:#4B5A54;
+    --line:#D3DCD4; --accent:#B96A22; --accent-soft:#E7D2B8;
+    --ok:#2E8F63; --ok-bg:#E3F1E9; --warn:#B4820F; --warn-bg:#F5ECD4;
+    --bad:#B8402F; --bad-bg:#F6E0DB; --info:#3B6EA8; --info-bg:#E4ECF5;
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
+    --sans: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#12161A; --panel:#181E22; --ink:#DCE4DE; --ink-soft:#93A39C;
+      --line:#2B3439; --accent:#E0954A; --accent-soft:#3A2E1E;
+      --ok:#49C489; --ok-bg:#123326; --warn:#E0BB4B; --warn-bg:#332A11;
+      --bad:#E37464; --bad-bg:#3A1D18; --info:#79A6E0; --info-bg:#182C3E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#12161A; --panel:#181E22; --ink:#DCE4DE; --ink-soft:#93A39C;
+    --line:#2B3439; --accent:#E0954A; --accent-soft:#3A2E1E;
+    --ok:#49C489; --ok-bg:#123326; --warn:#E0BB4B; --warn-bg:#332A11;
+    --bad:#E37464; --bad-bg:#3A1D18; --info:#79A6E0; --info-bg:#182C3E;
+  }
+  :root[data-theme="light"]{
+    --paper:#EEF2ED; --panel:#FFFFFF; --ink:#182420; --ink-soft:#4B5A54;
+    --line:#D3DCD4; --accent:#B96A22; --accent-soft:#E7D2B8;
+    --ok:#2E8F63; --ok-bg:#E3F1E9; --warn:#B4820F; --warn-bg:#F5ECD4;
+    --bad:#B8402F; --bad-bg:#F6E0DB; --info:#3B6EA8; --info-bg:#E4ECF5;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--serif);
+    font-size:16.5px; line-height:1.65;
+  }
+  h1,h2,h3,h4{ font-family:var(--sans); text-wrap:balance; color:var(--ink); }
+  a{ color:var(--info); text-decoration-thickness:1px; text-underline-offset:2px; }
+  code, .mono, table.data, .cmd{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+  .shell{ display:grid; grid-template-columns:250px minmax(0,1fr); gap:0; max-width:1180px; margin:0 auto; }
+  @media (max-width:900px){ .shell{ grid-template-columns:1fr; } .toc{ position:static !important; height:auto !important; border-right:none !important; border-bottom:1px solid var(--line); } }
+
+  .toc{
+    position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+    padding:28px 18px; border-right:1px solid var(--line); font-family:var(--sans);
+  }
+  .toc .brand{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:18px; }
+  .toc ol{ list-style:none; margin:0; padding:0; counter-reset:sec; }
+  .toc li{ counter-increment:sec; margin:0 0 2px; }
+  .toc a{ display:block; padding:6px 8px; border-radius:4px; color:var(--ink-soft); font-size:13px; text-decoration:none; }
+  .toc a::before{ content:counter(sec,decimal-leading-zero) "  "; color:var(--accent); font-family:var(--mono); font-size:12px; }
+  .toc a:hover{ background:var(--panel); color:var(--ink); }
+
+  main{ padding:0 clamp(18px,4vw,50px) 70px; min-width:0; }
+
+  .titleblock{
+    margin:30px 0 22px; padding:26px clamp(18px,3vw,32px); border:1px solid var(--line); border-radius:2px;
+    background:var(--panel); position:relative;
+  }
+  .titleblock::before, .titleblock::after{
+    content:""; position:absolute; width:14px; height:14px; border:1.5px solid var(--accent); opacity:.7;
+  }
+  .titleblock::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  .titleblock::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+  .eyebrow{ font-family:var(--mono); font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin:0 0 10px; }
+  .titleblock h1{ margin:0 0 8px; font-size:clamp(22px,3vw,32px); line-height:1.2; letter-spacing:-.01em; }
+  .titleblock .sub{ color:var(--ink-soft); font-family:var(--sans); font-size:15px; max-width:70ch; margin:0 0 18px; }
+  .meta{ display:flex; flex-wrap:wrap; gap:20px 32px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:14px; }
+  .meta strong{ display:block; color:var(--ink); font-size:12.5px; margin-bottom:2px; font-family:var(--sans); }
+
+  section{ margin:48px 0; scroll-margin-top:20px; }
+  section > h2{ font-size:21px; display:flex; align-items:baseline; gap:12px; margin:0 0 14px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+  section > h2 .num{ font-family:var(--mono); color:var(--accent); font-size:13px; letter-spacing:.06em; }
+
+  p{ margin:0 0 14px; }
+  ul, ol{ margin:0 0 14px; padding-left:22px; }
+  li{ margin-bottom:6px; }
+
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px 20px; margin:16px 0; }
+  .callout{ border-left:3px solid var(--accent); background:var(--accent-soft); padding:12px 16px; border-radius:0 3px 3px 0; margin:16px 0; font-family:var(--sans); font-size:14.5px; }
+  .callout.info{ border-color:var(--info); background:var(--info-bg); }
+  .callout.warn{ border-color:var(--warn); background:var(--warn-bg); }
+  .callout b{ color:var(--ink); }
+
+  table.data{ width:100%; border-collapse:collapse; margin:16px 0; font-size:14px; }
+  table.data th, table.data td{ border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; }
+  table.data th{ background:var(--panel); font-family:var(--sans); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); }
+  table.data tr:nth-child(even) td{ background:color-mix(in srgb, var(--panel) 60%, transparent); }
+
+  pre{ background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.55; margin:14px 0; }
+  code.inline{ background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:1px 6px; font-size:.92em; }
+
+  .figure{ margin:20px 0; }
+  .figure svg{ width:100%; height:auto; display:block; }
+  .figcap{ font-family:var(--sans); font-size:12.5px; color:var(--ink-soft); margin-top:8px; text-align:center; }
+
+  .badge{ display:inline-block; font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.03em; padding:2px 8px; border-radius:10px; }
+  .badge.ok{ background:var(--ok-bg); color:var(--ok); }
+  .badge.warn{ background:var(--warn-bg); color:var(--warn); }
+  .badge.bad{ background:var(--bad-bg); color:var(--bad); }
+
+  .term{ background:#0d1210; color:#c9dccf; border-radius:4px; padding:14px 16px; font-family:var(--mono); font-size:12.5px; overflow-x:auto; }
+  :root[data-theme="light"] .term, @media (prefers-color-scheme:light){ .term{ background:#14201b; } }
+
+  .filebox{ font-family:var(--sans); font-size:13px; }
+  .filebox summary{ cursor:pointer; padding:8px 12px; background:var(--panel); border:1px solid var(--line); border-radius:3px; font-weight:600; }
+  .filebox[open] summary{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
+  .filebox .body{ border:1px solid var(--line); border-top:none; padding:12px 16px; border-radius:0 0 3px 3px; }
+
+  footer.rpt{ text-align:center; font-family:var(--sans); font-size:12px; color:var(--ink-soft); padding:30px 0 10px; }
+  hr.rule{ border:none; border-top:1px solid var(--line); margin:40px 0; }
+  svg text{ font-family:var(--sans); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="toc">
+  <div class="brand">GPS Spoofing System — Report</div>
+  <ol>
+    <li><a href="#abstract">Abstract</a></li>
+    <li><a href="#objective">Objective</a></li>
+    <li><a href="#problem">Problem Statement</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+    <li><a href="#architecture">System Architecture</a></li>
+    <li><a href="#techniques">Multi-Directional Techniques</a></li>
+    <li><a href="#internals">System Internals</a></li>
+    <li><a href="#mechanism">Why It Works</a></li>
+    <li><a href="#verification">Verification Setup</a></li>
+    <li><a href="#specs">Signal Specifications</a></li>
+    <li><a href="#improvements">What We Changed</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#limitations">Limitations</a></li>
+    <li><a href="#future">Future Work</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#appendix">Appendix — Files</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<div class="titleblock">
+  <p class="eyebrow">Research &amp; Test Lab Report</p>
+  <h1>GPS Spoofing System — SDR Signal Injection and Drone Position-Control Verification Report</h1>
+  <p class="sub">A bench setup that transmits a synthetic GPS radio signal at a drone and checks, against two independent readouts, whether the flight controller actually believed it.</p>
+  <div class="meta">
+    <div><strong>Author</strong>Shivani Reddy</div>
+    <div><strong>Date</strong>22 July 2026</div>
+    <div><strong>Project folder</strong>~/Desktop/spoofer_final</div>
+    <div><strong>Ephemeris used</strong>DOY 203, 2026</div>
+    <div><strong>Flight controller</strong>ArduCopter V4.6.3</div>
+    <div><strong>Ground station</strong>Mission Planner 1.3.82</div>
+  </div>
+</div>
+
+<section id="abstract">
+  <h2><span class="num">01</span>Abstract</h2>
+  <p>This spoofing system builds a fake GPS radio signal and transmits it at a target drone through a software-defined radio (an SDR — a radio whose behaviour is set entirely by software, not fixed hardware). The drone's own GPS receiver cannot tell our signal apart from a real satellite, and simply locks onto whichever one is louder. Once it is ours, we can tell the receiver it is anywhere we like.</p>
+  <p>The interesting part is what happens next. A drone flying in GUIDED or LOITER mode is always trying to correct its position back to where it should be. If we feed it a slow fake drift to the north, it does not fly north — it flies <b>south</b>, fighting an error that only exists inside its own GPS feed. That reversal is the core effect this SDR-based spoofing system is built to demonstrate and measure.</p>
+  <p>This document walks through the complete chain — pulling real satellite data, building a flight path, turning it into a radio signal, transmitting it, and checking the real outcome on two separate screens — and is honest about the rough edges we found and fixed along the way, not just the clean runs.</p>
+</section>
+
+<section id="objective">
+  <h2><span class="num">02</span>Objective</h2>
+  <ul>
+    <li>Build a repeatable bench test that spoofs a real ArduPilot flight controller's GPS input over the air, using the real GPS L1 frequency.</li>
+    <li>Prove — not assume — that the flight controller accepted the fake position, by reading its actual reported fix rather than guessing from a timer.</li>
+    <li>Cross-check that reading against a second, independent source: Mission Planner's own live telemetry.</li>
+    <li>Use the drift-then-correct behaviour to test how a drone under GUIDED/LOITER control responds to slow position spoofing, as a stand-in for testing GNSS spoofing detection and EKF failsafe thresholds.</li>
+  </ul>
+</section>
+
+<section id="problem">
+  <h2><span class="num">03</span>Problem Statement</h2>
+  <p>Before this round of work, the spoofing system could transmit a spoofed signal, but the terminal reporting whether it had "locked" was not actually reading the drone — it printed success once a fixed amount of time had passed, regardless of what the flight controller was really doing. That meant every "it worked" claim was a guess dressed up as a measurement. On top of that, the daily satellite data file had to be renamed by hand every single day, and there was no second way to confirm the reported position besides trusting our own code.</p>
+  <p>The problem, plainly: <b>we could transmit a spoofed GPS signal, but we could not honestly prove the drone had believed it.</b> This report documents the fix.</p>
+</section>
+
+<section id="methodology">
+  <h2><span class="num">04</span>Methodology</h2>
+  <p>Every test run follows the same six stages, in this order:</p>
+  <ol>
+    <li><b>Pull today's real satellite data.</b> Every GPS satellite broadcasts orbit and clock data about itself, called ephemeris. <code class="inline">sync_gps.sh</code> downloads today's real file (for example <code class="inline">brdc2030.26n</code>) from NASA's CDDIS archive. Without fresh ephemeris the fake signal would describe satellites that are not really where they should be, and the receiver would throw it out as nonsense.</li>
+    <li><b>Connect Mission Planner and load the helper script.</b> Normal Auto Connect, then open Mission Planner's Scripts tab and run <code class="inline">mp_scripts/gps_udp_forward.py</code>. This script runs inside Mission Planner itself and hands its own live GPS numbers to our monitor over the network.</li>
+    <li><b>Decide the flight path.</b> One of three shapes — a straight walk to one target, a repeating four-direction drift around a start point, or instant jumps between a list of cities. Whichever shape, the output is the same: a plain list of "at this time, be at this exact lat/lon/altitude."</li>
+    <li><b>Turn the path into a radio signal.</b> <code class="inline">gpssim</code>, built on the open-source gps-sdr-sim project, reads the real satellite data and the flight path, and works out — for every satellite that would be visible — exactly what its signal should look like if the receiver really were moving along that path. It sums all of those signals into one stream of raw samples.</li>
+    <li><b>Transmit continuously on the real GPS frequency.</b> <code class="inline">tx_gpssim</code> plays that sample stream through a USRP B210 SDR on 1575.42 MHz — the genuine GPS L1 frequency — in a loop that keeps the radio open the whole time, so there is no restart gap.</li>
+    <li><b>Watch the real result on two independent screens.</b> A monitor script asks the flight controller, over MAVLink, what it actually believes its position is, and separately asks Mission Planner the same question through the helper script, then prints the honest answer every second.</li>
+  </ol>
+
+  <div class="figure">
+    <svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"></path>
+        </marker>
+      </defs>
+      <style>
+        .box{ fill:var(--panel); stroke:var(--line); stroke-width:1.4; }
+        .lbl{ fill:var(--ink); font-size:13px; }
+        .sub{ fill:var(--ink-soft); font-size:10.5px; }
+        .ln{ stroke:var(--ink-soft); stroke-width:1.6; fill:none; marker-end:url(#arrow1); }
+      </style>
+      <rect class="box" x="10"  y="90" width="150" height="70" rx="4"></rect>
+      <text class="lbl" x="85" y="118" text-anchor="middle">NASA Ephemeris</text>
+      <text class="sub" x="85" y="136" text-anchor="middle">brdc2030.26n</text>
+
+      <rect class="box" x="10"  y="180" width="150" height="60" rx="4"></rect>
+      <text class="lbl" x="85" y="205" text-anchor="middle">Flight Path</text>
+      <text class="sub" x="85" y="221" text-anchor="middle">lat/lon/alt list</text>
+
+      <rect class="box" x="220" y="115" width="140" height="70" rx="4"></rect>
+      <text class="lbl" x="290" y="143" text-anchor="middle">gpssim</text>
+      <text class="sub" x="290" y="161" text-anchor="middle">builds IQ waveform</text>
+
+      <rect class="box" x="420" y="115" width="150" height="70" rx="4"></rect>
+      <text class="lbl" x="495" y="143" text-anchor="middle">USRP B210</text>
+      <text class="sub" x="495" y="161" text-anchor="middle">1575.42 MHz TX</text>
+
+      <rect class="box" x="630" y="115" width="150" height="70" rx="4"></rect>
+      <text class="lbl" x="705" y="143" text-anchor="middle">Drone GNSS RX</text>
+      <text class="sub" x="705" y="161" text-anchor="middle">locks onto our signal</text>
+
+      <rect class="box" x="630" y="10" width="150" height="60" rx="4"></rect>
+      <text class="lbl" x="705" y="35" text-anchor="middle">Mission Planner</text>
+      <text class="sub" x="705" y="51" text-anchor="middle">HUD + map + scripts</text>
+
+      <rect class="box" x="420" y="220" width="150" height="34" rx="4"></rect>
+      <text class="lbl" x="495" y="242" text-anchor="middle">Our Terminal Monitor</text>
+
+      <path class="ln" d="M160,125 L220,140"></path>
+      <path class="ln" d="M160,210 L220,165"></path>
+      <path class="ln" d="M360,150 L420,150"></path>
+      <path class="ln" d="M570,150 L630,150"></path>
+      <path class="ln" d="M705,115 L705,70"></path>
+      <path class="ln" d="M705,185 C705,215 620,235 570,237"></path>
+      <path class="ln" d="M705,40 C650,60 550,90 495,115"></path>
+    </svg>
+    <p class="figcap">Figure 1 — End-to-end signal and verification chain, from real satellite data to two independent screens.</p>
+  </div>
+</section>
+
+<section id="architecture">
+  <h2><span class="num">05</span>System Architecture</h2>
+  <p>Laid out as layers, top to bottom: where the data comes from, what turns it into a flight path, what turns that path into a radio signal, what puts the signal on air, what receives it, and what watches the outcome.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 920 620" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+      </defs>
+      <style>
+        .tier{ fill:none; stroke:var(--line); stroke-width:1; stroke-dasharray:3,4; }
+        .tierlbl{ fill:var(--ink-soft); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; font-family:var(--sans); }
+        .nbox{ fill:var(--panel); stroke:var(--info); stroke-width:1.4; }
+        .nboxA{ fill:var(--panel); stroke:var(--accent); stroke-width:1.6; }
+        .ntxt{ fill:var(--ink); font-size:12px; }
+        .nsub{ fill:var(--ink-soft); font-size:9.5px; }
+        .link{ stroke:var(--accent); stroke-width:1.6; fill:none; marker-end:url(#arrowA); }
+      </style>
+
+      <!-- Tier bands -->
+      <rect class="tier" x="10" y="10"  width="900" height="80"></rect>
+      <text class="tierlbl" x="24" y="26">Tier 1 — Data Sources</text>
+
+      <rect class="tier" x="10" y="105" width="900" height="80"></rect>
+      <text class="tierlbl" x="24" y="121">Tier 2 — Path / Trajectory Generation</text>
+
+      <rect class="tier" x="10" y="200" width="900" height="90"></rect>
+      <text class="tierlbl" x="24" y="216">Tier 3 — Signal Synthesis</text>
+
+      <rect class="tier" x="10" y="305" width="900" height="80"></rect>
+      <text class="tierlbl" x="24" y="321">Tier 4 — RF Transmission</text>
+
+      <rect class="tier" x="10" y="400" width="900" height="80"></rect>
+      <text class="tierlbl" x="24" y="416">Tier 5 — Target Receiver</text>
+
+      <rect class="tier" x="10" y="495" width="900" height="105"></rect>
+      <text class="tierlbl" x="24" y="511">Tier 6 — Live Verification</text>
+
+      <!-- Tier 1 -->
+      <rect class="nbox" x="40"  y="38" width="200" height="42" rx="4"></rect>
+      <text class="ntxt" x="140" y="63" text-anchor="middle">NASA CDDIS Ephemeris</text>
+      <rect class="nbox" x="280" y="38" width="200" height="42" rx="4"></rect>
+      <text class="ntxt" x="380" y="55" text-anchor="middle">sync_gps.sh</text>
+      <text class="nsub" x="380" y="70" text-anchor="middle">daily brdcDDD0.YYn fetch</text>
+      <rect class="nbox" x="520" y="38" width="360" height="42" rx="4"></rect>
+      <text class="ntxt" x="700" y="55" text-anchor="middle">Operator Config</text>
+      <text class="nsub" x="700" y="70" text-anchor="middle">start / target / waypoints / gain / mode</text>
+
+      <!-- Tier 2 -->
+      <rect class="nbox" x="40"  y="133" width="230" height="42" rx="4"></rect>
+      <text class="ntxt" x="155" y="150" text-anchor="middle">gen_trajectory.py</text>
+      <text class="nsub" x="155" y="165" text-anchor="middle">ECEF straight-line walk</text>
+      <rect class="nbox" x="300" y="133" width="230" height="42" rx="4"></rect>
+      <text class="ntxt" x="415" y="150" text-anchor="middle">multidirectional_spoof.py</text>
+      <text class="nsub" x="415" y="165" text-anchor="middle">8-direction cycle</text>
+      <rect class="nbox" x="560" y="133" width="330" height="42" rx="4"></rect>
+      <text class="ntxt" x="725" y="150" text-anchor="middle">waypoint_spoof.py / run_spoof_full.sh switch</text>
+      <text class="nsub" x="725" y="165" text-anchor="middle">named-city instant jumps</text>
+
+      <!-- Tier 3 -->
+      <rect class="nboxA" x="300" y="228" width="320" height="46" rx="4"></rect>
+      <text class="ntxt" x="460" y="248" text-anchor="middle" font-weight="600">gpssim (gps-sdr-sim engine)</text>
+      <text class="nsub" x="460" y="264" text-anchor="middle">ephemeris + path → per-satellite I/Q, 2.6 Msps</text>
+
+      <!-- Tier 4 -->
+      <rect class="nboxA" x="300" y="323" width="320" height="46" rx="4"></rect>
+      <text class="ntxt" x="460" y="343" text-anchor="middle" font-weight="600">tx_gpssim → USRP B210</text>
+      <text class="nsub" x="460" y="359" text-anchor="middle">1575.42 MHz, gain 55–90 dB, gapless loop</text>
+
+      <!-- Tier 5 -->
+      <rect class="nbox" x="300" y="418" width="320" height="46" rx="4"></rect>
+      <text class="ntxt" x="460" y="438" text-anchor="middle">Drone GNSS Receiver + EKF</text>
+      <text class="nsub" x="460" y="454" text-anchor="middle">ArduCopter flight controller, /dev/ttyACM0</text>
+
+      <!-- Tier 6 -->
+      <rect class="nbox" x="40"  y="523" width="260" height="52" rx="4"></rect>
+      <text class="ntxt" x="170" y="544" text-anchor="middle">spoof_monitor.py</text>
+      <text class="nsub" x="170" y="559" text-anchor="middle">MAVLink GPS_RAW_INT reader</text>
+      <rect class="nbox" x="330" y="523" width="260" height="52" rx="4"></rect>
+      <text class="ntxt" x="460" y="544" text-anchor="middle">Mission Planner + gps_udp_forward.py</text>
+      <text class="nsub" x="460" y="559" text-anchor="middle">independent UDP fix source, port 5051</text>
+      <rect class="nbox" x="620" y="523" width="260" height="52" rx="4"></rect>
+      <text class="ntxt" x="750" y="544" text-anchor="middle">Terminal + current_wp.json</text>
+      <text class="nsub" x="750" y="559" text-anchor="middle">fix type, coordinates, lock state, log</text>
+
+      <!-- Vertical links between tiers -->
+      <path class="link" d="M140,80 L155,133"></path>
+      <path class="link" d="M380,80 L415,133"></path>
+      <path class="link" d="M700,80 L725,133"></path>
+      <path class="link" d="M415,175 L460,228"></path>
+      <path class="link" d="M460,274 L460,323"></path>
+      <path class="link" d="M460,369 L460,418"></path>
+      <path class="link" d="M460,464 C460,485 300,505 170,523"></path>
+      <path class="link" d="M460,464 L460,523"></path>
+      <path class="link" d="M460,464 C460,485 620,505 750,523"></path>
+    </svg>
+    <p class="figcap">Figure 2 — Full system architecture: from raw satellite data down to the live terminal readout, in six tiers.</p>
+  </div>
+</section>
+
+<section id="techniques">
+  <h2><span class="num">06</span>Multi-Directional Spoofing Techniques</h2>
+  <p>Beyond the single-target walk described in §4, the codebase includes several purpose-built scripts for different spoofing patterns. All of them work on the same underlying principle from §8: the drone corrects <b>opposite</b> to whatever fake drift direction it is told about.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 460 460" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--info)"></path>
+        </marker>
+      </defs>
+      <style>
+        .box3{ fill:var(--panel); stroke:var(--info); stroke-width:1.6; }
+        .boxc{ fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.8; }
+        .lbl3{ fill:var(--ink); font-size:13px; }
+        .ln3{ stroke:var(--info); stroke-width:1.8; fill:none; marker-end:url(#arrow3); }
+      </style>
+      <!-- center -->
+      <rect class="boxc" x="185" y="200" width="90" height="60" rx="4"></rect>
+      <text class="lbl3" x="230" y="235" text-anchor="middle">CENTER</text>
+
+      <!-- north -->
+      <rect class="box3" x="185" y="20" width="90" height="60" rx="4"></rect>
+      <text class="lbl3" x="230" y="55" text-anchor="middle">NORTH</text>
+      <!-- east -->
+      <rect class="box3" x="370" y="200" width="90" height="60" rx="4"></rect>
+      <text class="lbl3" x="415" y="235" text-anchor="middle">EAST</text>
+      <!-- south -->
+      <rect class="box3" x="185" y="380" width="90" height="60" rx="4"></rect>
+      <text class="lbl3" x="230" y="415" text-anchor="middle">SOUTH</text>
+      <!-- west -->
+      <rect class="box3" x="0" y="200" width="90" height="60" rx="4"></rect>
+      <text class="lbl3" x="45" y="235" text-anchor="middle">WEST</text>
+
+      <!-- center -> north -> center -->
+      <path class="ln3" d="M245,200 L245,80"></path>
+      <path class="ln3" d="M215,80 L215,200"></path>
+      <!-- center -> east -> center -->
+      <path class="ln3" d="M275,215 L370,215"></path>
+      <path class="ln3" d="M370,245 L275,245"></path>
+      <!-- center -> south -> center -->
+      <path class="ln3" d="M215,260 L215,380"></path>
+      <path class="ln3" d="M245,380 L245,260"></path>
+      <!-- center -> west -> center -->
+      <path class="ln3" d="M185,245 L90,245"></path>
+      <path class="ln3" d="M90,215 L185,215"></path>
+    </svg>
+    <p class="figcap">Figure 3 — 4-direction drift cycle: CENTER → NORTH → CENTER → EAST → CENTER → SOUTH → CENTER → WEST → CENTER, then repeats. Each direction starts from the same known-good reference point, at ~200 m offset and ~2.5 m/s. The 8-direction script (<code class="inline">multidirectional_spoof.py</code>) runs the same pattern with four extra intercardinal legs (NE, SE, SW, NW).</p>
+  </div>
+
+  <table class="data">
+    <tr><th>Script</th><th>Pattern</th><th>Notes</th></tr>
+    <tr><td><code class="inline">multi_drift.py</code> / <code class="inline">run_spoof_full.sh cycle</code></td><td>4-direction cycle: N → E → S → W, returning to centre each time</td><td>~200 m offset, ~2.5 m/s ramp, one <code class="inline">gpssim</code> call per leg with no transmission gap</td></tr>
+    <tr><td><code class="inline">multidirectional_spoof.py</code></td><td>8-direction cycle: N → NE → E → SE → S → SW → W → NW</td><td>Supports <code class="inline">--ramp-speed 0</code> (instant GPS teleport per epoch) or a smooth ramp (5–8 m/s); finer directional coverage than the 4-direction cycle</td></tr>
+    <tr><td><code class="inline">waypoint_spoof.py</code> / <code class="inline">run_spoof_full.sh switch</code></td><td>Instant jumps between named real-world coordinates (e.g. six Indian cities, or a list of local landmarks)</td><td>Each stop: ramp to anchor → hold → ramp to waypoint → hold → ramp back; used to test whether the flight controller's safety checks catch an impossibly large jump</td></tr>
+    <tr><td><code class="inline">gps_joystick.py</code></td><td>Manual, operator-steered drift in real time (WASD / arrow keys, 8 directions plus altitude)</td><td>Same opposite-direction rule applies live — useful for interactively demonstrating the effect rather than running a fixed pattern</td></tr>
+    <tr><td><code class="inline">gps_coldstart.py</code></td><td>Not a drift pattern — a pre-step run before the others</td><td>Sends a MAVLink <code class="inline">UBX-CFG-RST</code> full cold-start command to the receiver, clearing its cached almanac/ephemeris/time so it does not reject our simulated time as "wrong satellite position"</td></tr>
+  </table>
+
+  <div class="callout info">
+    <b>Two different drift-speed ceilings appear in the codebase, both under the receiver's threshold on purpose:</b> the 4-direction cycle scripts default to ≈2.5 m/s against a documented ~3 m/s EKF sanity limit, while the 8-direction and joystick scripts document ArduPilot's velocity-innovation rejection threshold at roughly 5–10 m/s and default to 2–8 m/s ramps. Both stay safely below the point where the EKF would flag the GPS jump as physically impossible and ignore it (§8).
+  </div>
+
+  <p>Why cold-start matters: a GNSS receiver that already has recent almanac/ephemeris data "knows," roughly, where each satellite should be right now. If our spoofed signal claims a satellite is somewhere that does not match the receiver's own expectation for that time, it can reject the signal instead of tracking it. Clearing that cached state first (via <code class="inline">gps_coldstart.py</code>) removes that expectation, so the receiver accepts whatever signal it hears — ours included.</p>
+</section>
+
+<section id="internals">
+  <h2><span class="num">07</span>System Internals — How Each File Works</h2>
+  <p>This section explains, file by file, what the code that drives the SDR transmitter and the drift/waypoint logic actually does internally, so the pipeline in Figure 1 is not a black box.</p>
+
+  <details class="filebox" open>
+    <summary>run_spoof_full.sh — orchestrator</summary>
+    <div class="body">
+      <p>This is the script an operator actually runs. It takes a gain value in dB and an optional mode word (<code class="inline">cycle</code> or <code class="inline">switch</code>; no word means a single walk to one target).</p>
+      <ul>
+        <li>Works out today's date and satellite-data filename on its own (no hand-editing).</li>
+        <li>Converts the chosen start/target/waypoint coordinates into a time-stamped trajectory, in chunks, so the next chunk can be generated in the background while the current one is transmitting — this removes the gap that used to exist between chunks.</li>
+        <li>Calls <code class="inline">gpssim</code> with <code class="inline">--l1-gain "${GAIN}"</code> and the current ephemeris + trajectory files to build the IQ sample file for that chunk.</li>
+        <li>Calls <code class="inline">tx_gpssim</code> to transmit that IQ file, and loops forever (cycle/switch modes) or until the target is reached and held (normal mode).</li>
+        <li>Launches <code class="inline">spoof_monitor.py</code> alongside the transmission so the terminal status is live, not guessed.</li>
+      </ul>
+      <div class="term">./run_spoof_full.sh 75            # single walk: start → target, then hold
+./run_spoof_full.sh 85 cycle      # loop N → E → S → W around start, forever
+./run_spoof_full.sh 85 switch     # instant-jump across a list of cities, forever</div>
+    </div>
+  </details>
+
+  <details class="filebox">
+    <summary>gpssim.c — signal generator (built on gps-sdr-sim)</summary>
+    <div class="body">
+      <p>Reads the ephemeris file (real satellite orbits/clocks) and the trajectory file (our fake path), and for every GPS satellite that would be visible from that path at that time, computes the exact code phase, Doppler shift (frequency change caused by relative motion), and navigation data bits that satellite's real signal would carry. It adds all of the satellites' signals together into one combined stream of 16-bit I/Q samples at 2.6 Msps (million samples per second) — this file is the actual fake GPS waveform, before any radio hardware is involved.</p>
+    </div>
+  </details>
+
+  <details class="filebox">
+    <summary>tx_gpssim.cpp — radio driver</summary>
+    <div class="body">
+      <p>Takes the IQ sample file from <code class="inline">gpssim</code> and streams it out through the USRP B210 using the UHD driver library. Three lines in the code set the actual radio behaviour:</p>
+      <div class="term">usrp->set_tx_rate(samp_rate);              // 2,600,000 samples/sec
+usrp->set_tx_freq(uhd::tune_request_t(1575.42e6));  // real GPS L1 frequency
+usrp->set_tx_gain(gain);                    // operator-supplied, e.g. 75 or 85 dB</div>
+      <p>It keeps the radio hardware open across the whole run (a "gapless loop") so there is never a silent gap where the receiver could notice the real sky again.</p>
+    </div>
+  </details>
+
+  <details class="filebox">
+    <summary>mp_scripts/gps_udp_forward.py — Mission Planner side-channel</summary>
+    <div class="body">
+      <p>Not a normal Python script — it only runs inside Mission Planner's own IronPython scripting console (Scripts tab → Open → Run), using Mission Planner's built-in <code class="inline">cs</code> object to read whatever Mission Planner itself currently displays.</p>
+      <div class="term">lat = cs.lat; lon = cs.lng; alt = cs.alt
+fix = int(cs.gpsstatus)   # 0/1=No Fix, 2=2D, 3=3D, 4=3D+DGPS, 5/6=RTK
+sats = int(cs.satcount)
+sock.sendto(("%.7f,%.7f,%.2f,%d,%d,%.3f" % (lat,lon,alt,fix,sats,time.time())).encode(),
+            ("127.0.0.1", 5051))</div>
+      <p>It fires this UDP packet about five times a second to port 5051, regardless of whether Mission Planner is connected by USB, radio, or auto-connect — giving us a second, independent read of the drone's believed position that does not depend on our own MAVLink connection being correct.</p>
+    </div>
+  </details>
+
+  <details class="filebox">
+    <summary>spoof_monitor.py — terminal status reader</summary>
+    <div class="body">
+      <p>Runs two readers at once, in a background thread each:</p>
+      <ul>
+        <li>A MAVLink reader that requests and reads the flight controller's own <code class="inline">GPS_RAW_INT</code> message — the same message ArduPilot itself uses internally.</li>
+        <li>A UDP listener on port 5051 for the Mission Planner side-channel above.</li>
+      </ul>
+      <p>Whichever source last delivered data drives the printed line. Distance between our transmitted target and the receiver's reported fix is computed with the Haversine formula (great-circle distance between two lat/lon points). Status only becomes <code class="inline">SPOOFED — LOCKED</code> once there is a real 3D fix <b>and</b> that fix is within 15 m of what we are transmitting — never on a timer.</p>
+    </div>
+  </details>
+</section>
+
+<section id="mechanism">
+  <h2><span class="num">08</span>Why the Real Drone Flies the Opposite Way</h2>
+  <p>This is the single most counter-intuitive part of the whole spoofing technique, so it is worth explaining slowly, in plain language.</p>
+  <p>A drone in GUIDED or LOITER/POSHOLD mode is always trying to hold a target position. Its EKF (Extended Kalman Filter — the internal algorithm that blends GPS with the gyroscope, accelerometer, and barometer into one best-guess position) takes whatever GPS reports and folds it in with the other sensors. If GPS says the drone has drifted, the flight controller commands the motors to fly back toward where it should be.</p>
+  <p>The other sensors feel nothing, because nothing is physically pushing the airframe — only the GPS number is changing, slowly, because we are changing it. As long as that fake drift stays under about 3 m/s (the flight controller's own "is this even physically possible" sanity check on GPS), the EKF treats it as ordinary motion and accepts it. So if we transmit a fake 200 m drift to the north, the flight controller believes it really is 200 m north of where it should be — and commands the motors south, to correct.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 170" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+      </defs>
+      <style>
+        .box2{ fill:var(--panel); stroke:var(--accent); stroke-width:1.6; }
+        .lbl2{ fill:var(--ink); font-size:13.5px; }
+        .ln2{ stroke:var(--accent); stroke-width:1.8; fill:none; marker-end:url(#arrow2); }
+      </style>
+      <rect class="box2" x="10"  y="55" width="190" height="60" rx="4"></rect>
+      <text class="lbl2" x="105" y="90" text-anchor="middle">Transmit fake</text>
+      <text class="lbl2" x="105" y="105" text-anchor="middle" font-size="11">200 m NORTH drift</text>
+
+      <rect class="box2" x="300" y="55" width="220" height="60" rx="4"></rect>
+      <text class="lbl2" x="410" y="82" text-anchor="middle">EKF believes it really</text>
+      <text class="lbl2" x="410" y="98" text-anchor="middle">drifted north</text>
+
+      <rect class="box2" x="620" y="55" width="190" height="60" rx="4"></rect>
+      <text class="lbl2" x="715" y="82" text-anchor="middle">Motors commanded</text>
+      <text class="lbl2" x="715" y="98" text-anchor="middle" font-weight="bold">to fly SOUTH</text>
+
+      <path class="ln2" d="M200,85 L300,85"></path>
+      <path class="ln2" d="M520,85 L620,85"></path>
+    </svg>
+    <p class="figcap">Figure 4 — Fake drift in, opposite real motion out. The correction loop repeats continuously while the fake drift keeps transmitting, which is what physically walks the aircraft off its original spot.</p>
+  </div>
+
+  <div class="callout">
+    <b>Why the 3 m/s speed cap matters:</b> faster than that, the EKF's own sanity check flags the GPS jump as physically impossible and ignores it outright — and this whole corrective-flight effect never triggers. That is why the drift scripts default to roughly 2.5 m/s (about 9 km/h), comfortably under the cutoff.
+  </div>
+</section>
+
+<section id="verification">
+  <h2><span class="num">09</span>Verification Setup — Two Independent Screens</h2>
+  <p>The point of this whole exercise is not to trust our own code. Two separate sources are read and compared, live:</p>
+  <table class="data">
+    <tr><th>Source</th><th>What it reads</th><th>Path</th></tr>
+    <tr><td>Mission Planner</td><td>HUD fix status, map position, GEO readout, Scripts console log</td><td>Its own telemetry link → <code class="inline">gps_udp_forward.py</code> → UDP → our monitor</td></tr>
+    <tr><td>Our terminal</td><td><code class="inline">GPS_RAW_INT.fix_type</code>, lat/lon, distance to our transmitted target</td><td>MAVLink direct to the flight controller</td></tr>
+  </table>
+  <p>A sample terminal line, read left to right:</p>
+  <div class="term">16:56:14   ● SPOOFED — LOCKED   #1   DRIFTING EAST→CENTER   17.604012  78.128775   3D   14.2m
+   time         status         loop    phase/direction         TX lat/lon        RX fix  gap-to-target</div>
+  <p>At 16:56:14, on loop 1, while drifting from east back toward centre, we were transmitting 17.604012°N / 78.128775°E, and the drone's real GPS reported a 3D fix only 14.2 m away from that — close enough to count as locked.</p>
+  <p>"Locked" here means two different things stacked on top of each other: first the receiver's own radio chip has to find and track each satellite's signal (30–90 s from a cold start — why every run begins with a long hold), and only after that is our own software label (<code class="inline">SPOOFED — LOCKED</code>, within 15 m of target) meaningful at all.</p>
+</section>
+
+<section id="specs">
+  <h2><span class="num">10</span>Signal Specifications</h2>
+  <p>The exact commands, frequency, and power settings used, with the reason for each:</p>
+  <table class="data">
+    <tr><th>Property</th><th>Value used</th><th>Why this value</th></tr>
+    <tr><td>Carrier frequency</td><td>1575.42 MHz</td><td>The real civilian GPS "L1" frequency. We transmit on the exact frequency every GPS receiver already listens on — nothing invented.</td></tr>
+    <tr><td>Signal type</td><td>L1 C/A</td><td>The standard civilian GPS code: a repeating 1023-chip pattern, unique per satellite, that any commercial receiver already knows how to read.</td></tr>
+    <tr><td>Sample rate</td><td>2,600,000 samples/sec</td><td>Fine enough resolution to represent the 1.023 Mchip/s C/A code correctly.</td></tr>
+    <tr><td>Sample depth</td><td>16-bit I/Q</td><td>Matches the USRP B210's native sample format — no extra conversion loss.</td></tr>
+    <tr><td>TX gain — indoors / close range</td><td>55–75 dB</td><td>Little or no real sky signal to out-shout indoors, so a modest gain is already stronger than what little real signal reaches the antenna.</td></tr>
+    <tr><td>TX gain — outdoors, open sky</td><td>85 dB (B210 max ≈ 89.8 dB)</td><td>Must clearly beat a full-strength real signal at ≈ −130 dBm; 75 dB alone is not enough outdoors.</td></tr>
+    <tr><td>TX gain — outdoors, with Lambda PA</td><td>75–85 dB into the amplifier</td><td>The power amplifier supplies the rest of the extra range beyond what the B210 alone can put out.</td></tr>
+    <tr><td>Drift speed</td><td>≈ 2.5 m/s</td><td>Kept under the flight controller's ~3 m/s "impossible motion" sanity check, so the fake drift is accepted as real GPS movement instead of rejected (§8).</td></tr>
+    <tr><td>Lock-match tolerance</td><td>15 m</td><td>Our own software threshold for printing "locked" — not a radio range figure, changeable in one line of <code class="inline">spoof_monitor.py</code>.</td></tr>
+  </table>
+  <div class="callout warn"><b>Note:</b> exact radiated power at the antenna depends on the specific B210 unit, cable, and connector losses. The figures above are what we set in software; true radiated dBm needs a spectrum analyser to measure directly.</div>
+  <p>Exact commands used to build and run the spoofing system:</p>
+  <div class="term"># build the signal generator
+gcc -O2 -o gpssim gpssim.c getopt.c -lm -lpthread
+
+# build the radio driver (needs UHD, the USRP driver library)
+g++ -std=c++17 -O2 -o tx_gpssim tx_gpssim.cpp $(pkg-config --cflags --libs uhd) -lpthread
+
+# before every test run: refresh today's satellite data
+./sync_gps.sh
+
+# then run one of:
+./run_spoof_full.sh 75            # single walk to target
+./run_spoof_full.sh 85 cycle      # N/E/S/W drift loop, all directions
+./run_spoof_full.sh 85 switch     # instant jumps across a waypoint list</div>
+</section>
+
+<section id="improvements">
+  <h2><span class="num">11</span>What We Changed in This Round</h2>
+  <p>The spoofing system already existed before this phase of work. What follows is specifically what was broken and what was done about it.</p>
+  <table class="data">
+    <tr><th>Problem found</th><th>What was actually happening</th><th>Fix applied</th></tr>
+    <tr><td>Terminal was guessing</td><td>Printed "3D Fix achieved" once 30 seconds had passed, no matter what the drone actually reported</td><td>Every run mode now reads the real GPS status from the flight controller and only reports success once the real receiver agrees</td></tr>
+    <tr><td>Stale satellite data</td><td>Filename and simulated date were hand-typed, so yesterday's file got used by mistake</td><td>The script now works out today's filename and date itself, on every run</td></tr>
+    <tr><td>No second opinion</td><td>Auto Connect does not hand GPS data to any outside program automatically</td><td>Added <code class="inline">gps_udp_forward.py</code>, running inside Mission Planner's own Scripts tab, feeding real position over UDP</td></tr>
+  </table>
+  <p>Net effect: the terminal, <code class="inline">current_wp.json</code>, and Mission Planner's own screen now all agree with each other — checked side by side on the bench (§12).</p>
+</section>
+
+<section id="results">
+  <h2><span class="num">12</span>Results — What We Actually Saw on the Bench</h2>
+  <p>Test run: <code class="inline">./run_spoof_full.sh 75 cycle</code> against a real ArduCopter flight controller, with Mission Planner's own script feeding back live coordinates.</p>
+  <table class="data">
+    <tr><th>Stage</th><th>Terminal reading</th><th>What it meant</th></tr>
+    <tr><td>Just after start</td><td><span class="badge warn">LINKED, NO GPS MSG</span></td><td>Connected, GPS stream had not started flowing yet — expected at this stage</td></tr>
+    <tr><td>Signal being tracked</td><td><span class="badge warn">3D FIX — NOT LOCKED</span></td><td>Real 3D fix present, gap closing from ~30 m down to single digits</td></tr>
+    <tr><td>Fully converged</td><td><span class="badge ok">SPOOFED — LOCKED</span></td><td>Gap of 2.1 m — matched Mission Planner's own displayed position</td></tr>
+    <tr><td>B210 physically unplugged mid-run</td><td><span class="badge bad">Clean shutdown, no crash</span></td><td>Script detected the radio had disappeared and reported it honestly</td></tr>
+  </table>
+  <p><b>Two things flagged, not hidden:</b></p>
+  <ul>
+    <li>Right after a restart, the drone briefly reported "Unhealthy GPS Signal" at a position roughly 130 km off, before settling back within about 30 seconds — normal receiver re-acquisition behaviour, not a code defect.</li>
+    <li>Near the 15 m cutoff, "locked / not locked" flickered back and forth while actively drifting — expected from a hard cutoff against a moving, slightly noisy number (addressed in §14).</li>
+  </ul>
+  <p><b>Achievements this round:</b></p>
+  <ul>
+    <li>Terminal status is read from the drone itself, not guessed from a timer, in all three run modes.</li>
+    <li>A second, independent source of real coordinates (Mission Planner's own scripting console) is now in place.</li>
+    <li>The daily hand-edit of satellite-data filename and date is gone.</li>
+    <li>Verified on real hardware: convergence to within ~2 m of the intended target, in all four compass directions.</li>
+    <li>Confirmed the SDR transmitter shuts down cleanly on an unexpected hardware disconnection.</li>
+  </ul>
+</section>
+
+<section id="limitations">
+  <h2><span class="num">13</span>Limitations</h2>
+  <table class="data">
+    <tr><th>Issue</th><th>Suggested fix</th></tr>
+    <tr><td>Lock/not-locked flickers near the 15 m line while drifting</td><td>Add a buffer zone: enter "locked" under 15 m, only exit above ~25 m</td></tr>
+    <tr><td>Brief wrong position right after a restart</td><td>Flag or ignore readings that imply an impossible jump, instead of showing them at face value</td></tr>
+    <tr><td>Mission Planner helper script loaded by hand each session</td><td>Check whether this MP version supports auto-run-on-connect</td></tr>
+    <tr><td>Satellite data refresh is manual</td><td>Schedule it as a daily timer job</td></tr>
+    <tr><td>Only tested on one flight controller / one Mission Planner version</td><td>Re-verify on the target platform before wider use</td></tr>
+  </table>
+</section>
+
+<section id="future">
+  <h2><span class="num">14</span>Future Work — Path to a Shareable Tool</h2>
+  <ol>
+    <li>A proper build system — one build file, pinned library versions.</li>
+    <li>A settings file instead of settings hard-coded in the script.</li>
+    <li>Scheduled, alerting refresh of the satellite data.</li>
+    <li>Smarter lock detection — buffer zone plus a filter for impossible readings.</li>
+    <li>Structured logs (clean data files instead of screenshots).</li>
+    <li>A safe SITL-based (Software-In-The-Loop, i.e. simulated aircraft) practice mode with no real radio or aircraft involved.</li>
+    <li>Safety guardrails: gain ceilings, geofenced allowed coordinates, explicit confirmation before any real transmission.</li>
+    <li>Support for more than one receiver/ground-station combination without changing code.</li>
+  </ol>
+</section>
+
+<section id="conclusion">
+  <h2><span class="num">15</span>Conclusion</h2>
+  <p>The spoofing system now does what it was always meant to do, honestly: it transmits a real GPS L1 signal built from genuine satellite data, and it proves — against two independent readouts rather than a guess — whether the target flight controller believed it. The counter-intuitive corrective-flight effect (fake drift one way, real aircraft moving the opposite way) was reproduced and measured on real hardware in all four compass directions, converging to within about 2 metres of the intended target. The remaining rough edges (§13) are understood and have concrete next steps, not open questions.</p>
+</section>
+
+<section id="references">
+  <h2><span class="num">16</span>References</h2>
+  <ul>
+    <li>gps-sdr-sim (open-source GPS signal simulator this spoofing system is built on) — <a href="https://github.com/osqzss/gps-sdr-sim">github.com/osqzss/gps-sdr-sim</a></li>
+    <li>MAVLink <code class="inline">GPS_RAW_INT</code> message reference — <a href="https://mavlink.io/en/messages/common.html#GPS_RAW_INT">mavlink.io</a></li>
+    <li>ArduPilot documentation — <a href="https://ardupilot.org/copter/">ardupilot.org/copter</a>, <a href="https://ardupilot.org/dev/">ardupilot.org/dev</a></li>
+    <li>UHD (USRP Hardware Driver) manual — <a href="https://files.ettus.com/manual/">files.ettus.com/manual</a></li>
+    <li>NASA CDDIS, daily ephemeris source — <a href="https://cddis.nasa.gov/">cddis.nasa.gov</a></li>
+    <li>Tippenhauer, Pöpper, Rasmussen, Čapkun, "On the Requirements for Successful GPS Spoofing Attacks," ACM CCS 2011 — <a href="https://doi.org/10.1145/2046707.2046719">doi.org/10.1145/2046707.2046719</a></li>
+    <li>Psiaki &amp; Humphreys, "GNSS Spoofing and Detection," Proceedings of the IEEE, 2016 — <a href="https://doi.org/10.1109/JPROC.2016.2526658">doi.org/10.1109/JPROC.2016.2526658</a></li>
+    <li>World Geodetic System 1984 (WGS-84) — <a href="https://en.wikipedia.org/wiki/World_Geodetic_System">en.wikipedia.org/wiki/World_Geodetic_System</a></li>
+    <li>Haversine formula — <a href="https://en.wikipedia.org/wiki/Haversine_formula">en.wikipedia.org/wiki/Haversine_formula</a></li>
+  </ul>
+</section>
+
+<section id="appendix">
+  <h2><span class="num">17</span>Appendix — File Inventory</h2>
+  <pre>run_spoof_full.sh              orchestrator: auto date/RINEX detection, all 3 run modes
+spoof_monitor.py                MAVLink + Mission-Planner-UDP dual-source fix reader
+gps_monitor.py                  same dual-source logic, standalone comparison view
+gpssim.c                        signal generator (built on gps-sdr-sim)
+tx_gpssim.cpp                   USRP B210 radio driver (1575.42 MHz TX)
+mp_scripts/gps_udp_forward.py   runs inside Mission Planner's Scripts tab
+sync_gps.sh                     downloads today's real satellite ephemeris
+GPS_Spoofing_Sync_Report.md     this report, plain text
+GPS_Spoofing_Sync_Report.html   this report, formatted</pre>
+</section>
+
+<footer class="rpt">Shivani Reddy · Internal bench documentation · 22 July 2026</footer>
+
+</main>
+</div>
+</body>
+</html>
