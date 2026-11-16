@@ -1,0 +1,25 @@
+# Generated IQ sample files (many GB) - never commit
+*.bin
+*.iq
+
+# RINEX ephemeris downloaded at runtime
+brdc*
+*.??n
+*.??o
+
+# Build artifacts / compiled binaries
+*.o
+gpssim
+tx_gpssim
+ultimate_spoofer
+trajectory_test
+a.out
+
+# Secrets / cookies
+.netrc
+.urs_cookies
+cookies.txt
+*.swp
+
+__pycache__/
+*.pyc
