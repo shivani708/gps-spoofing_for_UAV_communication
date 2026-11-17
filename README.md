@@ -7,7 +7,7 @@ Work carried out at **TiHAN, IIT Hyderabad** as the navigation-layer part of a s
 <p align="center">
   <img src="media/setup_demo.gif" alt="Bench setup: laptop running run_spoof_full.sh with Mission Planner, the drone, and the USRP B210 SDR all in frame as the spoofed position drifts" width="760">
   <br><em>The live bench — laptop running <code>run_spoof_full.sh</code> (terminal) with Mission Planner, the drone, and the USRP&nbsp;B210 SDR in frame; the spoofed location drifts on the map.</em>
-  <br>▶️ Full clips (click to open GitHub's player): <a href="media/indoor_spoof_test.mp4"><b>indoor bench test</b></a> · <a href="media/outdoor_drift_test.mp4"><b>outdoor flight test</b></a>
+  <br>▶️ Full clips (click to open GitHub's player): <a href="media/outdoor_flight_test.mp4"><b>outdoor flight test (drone airborne → FAILSAFE)</b></a> · <a href="media/indoor_spoof_test.mp4"><b>indoor bench test</b></a> · <a href="media/outdoor_drift_test.mp4"><b>drift pipeline</b></a>
 </p>
 
 <!-- ────────────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ Controlled lab and outdoor trials. L1 = 1575.42 MHz, USRP B210.
 | 4 | NLoS++ | 20 m | failed | 30.5 | 18 | — | ✗ |
 | 5 | LoS + obstacle | 25 m | 0.76 | 42.1 | 20 | 78.1 | ✓ |
 
-**Outdoor:** 5 trials — 3 achieved successful lock and coordinate drift; 2 showed delayed lock / signal fluctuation / GPS loss (mainly under the rainfall simulator). Spoofer-gain sweeps (20–89%) held a 3D fix with HDOP ≈ 0.01 and CN0 ≈ 38–39 dB-Hz.
+**Outdoor:** 5 trials — 3 achieved successful lock and coordinate drift; 2 showed delayed lock / signal fluctuation / GPS loss (mainly under the rainfall simulator). Spoofer-gain sweeps (20–89%) held a 3D fix with HDOP ≈ 0.01 and CN0 ≈ 38–39 dB-Hz. See the [outdoor flight test](media/outdoor_flight_test.mp4) — the drone is airborne over the runway when the spoof takes over and the flight controller trips **FAILSAFE / error velocity variance**.
 
 <p align="center">
   <img src="docs/figures/05_runway_drift.png" width="760" alt="Outdoor runway: drone on the tarmac with Mission Planner showing the drifted track and DISARMED/FAILSAFE">
@@ -177,7 +177,7 @@ sync_gps.sh                   downloads NASA CDDIS RINEX broadcast ephemeris
 docs/METHODOLOGY.md           full architecture, methodology, maths (Haversine, ECEF, EKF)
 docs/verification_report.html bench verification report — GitHub shows it as source; see rendered link below
 docs/figures/                 architecture diagrams + result screenshots
-media/                        recorded indoor/outdoor spoofing trials + preview GIF
+media/                        recorded trials: outdoor_flight_test (drone airborne), indoor/drift tests + preview GIF
 results/trajectory_drift.csv  sample generated drift trajectory
 results/positions_log.txt     sample multi-hop position log
 ```
